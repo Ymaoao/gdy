@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>干瞪眼计分器 - Ymaoao设计</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #e67e22;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin: 2rem 0;
+            color: #2c3e50;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .player-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .player-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .score {
+            font-size: 1.4rem;
+            font-weight: 600;
+            float: right;
+        }
+
+        .positive {
+            color: var(--success-color);
+        }
+
+        .negative {
+            color: var(--danger-color);
+        }
+
+        button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .bomb-btn {
+            background: var(--warning-color);
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        .spring-btn {
+            background: #9b59b6;
+            padding: 8px 12px;
+            margin-left: 10px;
+        }
+
+        .settlement {
+            background: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .settlement.hidden {
+            display: none !important;
+        }
+
+        .copyright {
+            text-align: center;
+            color: #666;
+            font-size: 0.8rem;
+            margin: 2rem 0;
+            padding: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            button {
+                width: 100%;
+                margin: 8px 0;
+            }
+            
+            .input-group {
+                flex-direction: column;
+                align-items: flex-start;
+                margin: 8px 0;
+            }
+            
+            .input-group > div {
+                width: 100%;
+                display: flex;
+                gap: 5px;
+                margin-top: 5px;
+            }
+            
+            .input-group input[type="number"] {
+                width: 60% !important;
+                flex: 2;
+                font-size: 0.9rem;
+                padding: 6px;
+            }
+            
+            .spring-btn {
+                flex: 1;
+                padding: 6px 8px;
+                font-size: 0.9rem;
+                min-width: auto;
+                white-space: nowrap;
+            }
+            
+            .player-card {
+                padding: 1rem;
+            }
+            
+            .bomb-controls {
+                flex-direction: column;
+            }
+            
+            .score {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎴 干瞪眼计分器</h1>
+    </div>
+
+    <div id="playerManagement">
+        <button onclick="addPlayer()">➕ 添加玩家</button>
+        <div id="playerList"></div>
+    </div>
+
+    <div id="gameControl">
+        <div class="bomb-controls">
+            <button onclick="addBomb()" class="bomb-btn">💣 增加炸弹（当前：<span id="bombDisplay">没有</span>）</button>
+            <button onclick="removeBomb()" class="bomb-btn" style="background: #95a5a6">➖ 取消炸弹</button>
+        </div>
+        
+        <div id="inputSection">
+            <h3>本局结算</h3>
+            <div>
+                <label>赢家：</label>
+                <select id="winner"></select>
+            </div>
+            <div id="losersInput"></div>
+            <button onclick="submitRound()">提交本局</button>
+            <button onclick="showSettlement()">结束游戏</button>
+        </div>
+
+        <div id="roundHistory"></div>
+    </div>
+
+    <div id="settlement" class="settlement hidden">
+        <h3>最终结算</h3>
+        <div id="moneyResult"></div>
+        <div>
+            <label>每分金额：</label>
+            <input type="number" id="rate" step="0.1" value="1" min="0"> 元
+            <button onclick="calculateMoney()">计算金额</button>
+        </div>
+        <button onclick="resetGame()">重新开始</button>
+    </div>
+
+    <div class="copyright">
+        此计分器是“Ymaoao”设计，版权归 Ymaoao 所有
+    </div>
+
+<script>
+let players = [];
+let bombMultiple = 1;
+let currentRound = 1;
+let roundHistoryData = [];
+
+function updateBombDisplay() {
+    const bombCount = bombMultiple - 1;
+    const display = bombCount === 0 ? '没有' : `${bombCount}个炸弹`;
+    document.getElementById('bombDisplay').textContent = display;
+}
+
+function initDefaultPlayers() {
+    if(players.length === 0) {
+        addPlayer('玩家1');
+        addPlayer('玩家2');
+        addPlayer('玩家3');
+        addPlayer('玩家4');
+    }
+}
+
+function addPlayer(name = '') {
+    const newPlayer = {
+        id: `player_${Date.now()}_${Math.random()}`,
+        name: name || `玩家${players.length + 1}`,
+        score: 0
+    };
+    players.push(newPlayer);
+    renderPlayers();
+    updateWinnerSelect();
+    initLosersInput();
+}
+
+function renderPlayers() {
+    const container = document.getElementById('playerList');
+    container.innerHTML = players.map(player => `
+        <div class="player-card">
+            <input type="text" value="${player.name}" 
+                   onchange="updatePlayerName('${player.id}', this.value)"
+                   style="width: 120px; border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+            <span class="score ${player.score >= 0 ? 'positive' : 'negative'}">${player.score}分</span>
+        </div>
+    `).join('');
+}
+
+function updatePlayerName(id, newName) {
+    const player = players.find(p => p.id === id);
+    if (player) {
+        player.name = newName.trim() || `玩家${players.indexOf(player)+1}`;
+        updateWinnerSelect();
+        renderRoundHistory();
+        initLosersInput();
+    }
+}
+
+function addBomb() {
+    bombMultiple++;
+    updateBombDisplay();
+}
+
+function removeBomb() {
+    if (bombMultiple > 1) {
+        bombMultiple--;
+        updateBombDisplay();
+    }
+}
+
+function updateWinnerSelect() {
+    const select = document.getElementById('winner');
+    const currentWinner = select.value;
+    select.innerHTML = players.map(player => 
+        `<option value="${player.id}" ${player.id === currentWinner ? 'selected' : ''}>${player.name}</option>`
+    );
+}
+
+function initLosersInput() {
+    const winnerId = document.getElementById('winner').value;
+    let html = '';
+    
+    players.forEach(player => {
+        if (player.id !== winnerId) {
+            html += `
+                <div class="input-group">
+                    <label>${player.name} 剩余牌数：</label>
+                    <div>
+                        <input type="number" id="cards_${player.id}" min="0" value="">
+                        <button onclick="setSpring('cards_${player.id}')" class="spring-btn">春天</button>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    document.getElementById('losersInput').innerHTML = html;
+}
+
+function setSpring(inputId) {
+    const input = document.getElementById(inputId);
+    input.value = 10;
+    input.dispatchEvent(new Event('input'));
+}
+
+function submitRound() {
+    const winnerId = document.getElementById('winner').value;
+    let totalScore = 0;
+
+    players.forEach(player => {
+        if (player.id !== winnerId) {
+            const input = document.getElementById(`cards_${player.id}`);
+            const cards = parseInt(input.value) || 0;
+            const score = cards * 1 * bombMultiple;
+            player.score -= score;
+            totalScore += score;
+        }
+    });
+
+    const winner = players.find(p => p.id === winnerId);
+    if (winner) winner.score += totalScore;
+
+    addRoundHistory(totalScore);
+    
+    bombMultiple = 1;
+    updateBombDisplay();
+    
+    renderPlayers();
+    initLosersInput();
+}
+
+function addRoundHistory(totalScore) {
+    roundHistoryData.push({
+        round: currentRound,
+        winnerId: document.getElementById('winner').value,
+        bombCount: bombMultiple - 1,
+        totalScore: totalScore
+    });
+    currentRound++;
+    renderRoundHistory();
+}
+
+function renderRoundHistory() {
+    const history = document.getElementById('roundHistory');
+    history.innerHTML = roundHistoryData.map(record => {
+        const winner = players.find(p => p.id === record.winnerId);
+        const bombText = record.bombCount === 0 ? '没有炸弹' : `${record.bombCount}个炸弹`;
+
+        return `
+            <div class="player-card">
+                <b>第${record.round}局</b> | 
+                赢家：${winner ? winner.name : '未知玩家'} | 
+                ${bombText} | 
+                得分：+${record.totalScore}分
+            </div>
+        `;
+    }).join('');
+}
+
+function showSettlement() {
+    if (players.length === 0) {
+        alert("请先添加玩家！");
+        return;
+    }
+    
+    if (currentRound === 1) {
+        alert("请至少完成一局游戏！");
+        return;
+    }
+
+    document.getElementById('inputSection').classList.add('hidden');
+    document.getElementById('settlement').classList.remove('hidden');
+    calculateMoney();
+}
+
+function calculateMoney() {
+    const rate = parseFloat(document.getElementById('rate').value) || 0;
+    let html = '';
+    
+    players.forEach(player => {
+        const amount = player.score * rate;
+        if (amount > 0) {
+            html += `<p>${player.name} 应收：<span style="color:green">${amount.toFixed(2)}元</span></p>`;
+        } else if (amount < 0) {
+            html += `<p>${player.name} 应付：<span style="color:red">${Math.abs(amount).toFixed(2)}元</span></p>`;
+        }
+    });
+    
+    document.getElementById('moneyResult').innerHTML = html;
+}
+
+function resetGame() {
+    if (!confirm("确定要重置所有游戏数据吗？")) return;
+    
+    players.forEach(player => player.score = 0);
+    bombMultiple = 1;
+    currentRound = 1;
+    roundHistoryData = [];
+    renderPlayers();
+    document.getElementById('settlement').classList.add('hidden');
+    document.getElementById('inputSection').classList.remove('hidden');
+    document.getElementById('rate').value = 1;
+    renderRoundHistory();
+    updateBombDisplay();
+    initLosersInput();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initDefaultPlayers();
+    document.getElementById('winner').addEventListener('change', initLosersInput);
+    updateWinnerSelect();
+    initLosersInput();
+    updateBombDisplay();
+});
+</script>
+</body>
+</html>
